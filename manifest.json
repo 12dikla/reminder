@@ -2,7 +2,7 @@
   "name": "Reminder",
   "short_name": "Reminder",
   "description": "Voice reminders & alarms",
-  "start_url": "/Remindr/",
+  "start_url": "/reminder/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
