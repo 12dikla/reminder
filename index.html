@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Reminder">
+    <meta name="theme-color" content="#000000">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <title>Reminder</title>
+    <style>
+        :root { --bg: #000; --card: #1c1c1e; --accent: #0a84ff; --danger: #ff453a; --text: #fff; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; padding-bottom: 100px; }
+        .container { width: 100%; max-width: 400px; }
+
+        /* Header */
+        .header { display: flex; align-items: center; gap: 14px; margin: 36px 0 22px; }
+        .alarm-icon { width: 52px; height: 52px; flex-shrink: 0; }
+        .header-text h1 { font-size: 30px; letter-spacing: -1px; margin: 0 0 2px; }
+        .header-text p { font-size: 13px; color: #8e8e93; margin: 0; }
+
+        /* Card */
+        .input-group { background: var(--card); padding: 20px; border-radius: 24px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        input[type="text"] { width: 100%; background: #2c2c2e; border: none; border-radius: 12px; padding: 15px; color: white; font-size: 17px; margin-bottom: 12px; outline: none; }
+
+        /* Repeat selector */
+        .section-label { font-size: 11px; color: #8e8e93; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+        .repeat-row { display: flex; gap: 7px; margin-bottom: 12px; flex-wrap: wrap; }
+        .repeat-btn { flex: 1; min-width: 60px; background: #2c2c2e; color: #aaa; border: none; padding: 10px 6px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+        .repeat-btn.active { background: var(--accent); color: #fff; }
+
+        /* Date picker */
+        .date-wrap { margin-bottom: 12px; }
+        input[type="date"] { width: 100%; background: #2c2c2e; border: none; border-radius: 12px; padding: 12px 15px; color: white; font-size: 16px; outline: none; color-scheme: dark; }
+
+        /* Time Wheel */
+        .time-wheel-wrap { background: #2c2c2e; border-radius: 16px; padding: 14px 12px 12px; margin-bottom: 12px; }
+        .time-wheels { display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .wheel-col { display: flex; flex-direction: column; align-items: center; }
+        .wheel-col > span { font-size: 11px; color: #8e8e93; margin-bottom: 4px; }
+        .wheel { height: 120px; overflow: hidden; position: relative; width: 70px; cursor: ns-resize; }
+        .wheel-inner { will-change: transform; }
+        .wheel-item { height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 500; color: #555; user-select: none; }
+        .wheel-item.active { color: #fff; font-size: 30px; font-weight: 600; }
+        .wheel::before,.wheel::after { content:''; position:absolute; left:0; right:0; height:40px; z-index:2; pointer-events:none; }
+        .wheel::before { top:0; background: linear-gradient(to bottom, #2c2c2e 30%, transparent); }
+        .wheel::after  { bottom:0; background: linear-gradient(to top, #2c2c2e 30%, transparent); }
+        .wheel-sep { font-size: 28px; font-weight: 700; color:#fff; padding:0 2px; margin-top:20px; }
+
+        /* Buttons */
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+        button.primary { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 600; font-size: 16px; transition: 0.2s; cursor: pointer; width: 100%; }
+        button.primary:active { transform: scale(0.96); opacity: 0.8; }
+        .record-btn { background: var(--danger) !important; }
+        .recording { animation: pulse 1.5s infinite; background: #ff7069 !important; }
+        @keyframes pulse { 0%{opacity:1}50%{opacity:0.4}100%{opacity:1} }
+
+        /* Install banner */
+        #installBanner { background: #1c1c1e; border: 1px solid #2c2c2e; border-radius: 16px; padding: 14px 16px; margin-bottom: 16px; display: none; align-items: center; gap: 12px; }
+        #installBanner span { flex: 1; font-size: 13px; color: #8e8e93; line-height: 1.5; }
+        #installBanner button { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; width: auto; white-space: nowrap; }
+
+        /* List */
+        .list { width: 100%; }
+        .item { background: var(--card); padding: 18px; border-radius: 20px; margin-bottom: 12px; border: 1px solid #2c2c2e; }
+        .item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .item-title { font-size: 16px; font-weight: 600; }
+        .item-meta { font-size: 13px; color: #8e8e93; margin-top: 3px; }
+        .repeat-badge { display: inline-block; background: #2c2c2e; color: #0a84ff; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; margin-top: 6px; }
+        audio { width:100%; height:35px; filter:invert(1); margin-top:10px; }
+        .del-btn { background: #3a3a3c; color: white; border: none; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+        /* Toast */
+        .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%) translateY(20px); background:#2c2c2e; color:white; padding:12px 24px; border-radius:20px; font-size:15px; opacity:0; transition:all 0.3s; pointer-events:none; z-index:999; white-space:nowrap; }
+        .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+        /* Alarm overlay */
+        #alarmOverlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; }
+        #alarmOverlay h2 { color:var(--danger); font-size:40px; margin-bottom:10px; }
+        #alarmOverlay p { font-size:20px; margin-bottom:30px; color:#aaa; }
+        #alarmOverlay button { background:var(--danger); padding:20px 60px; font-size:24px; width:auto; border:none; border-radius:18px; color:#fff; font-weight:700; cursor:pointer; }
+    </style>
+</head>
+<body>
+
+<div id="alarmOverlay">
+    <h2 id="alarmTitle">ALARM!</h2>
+    <p id="alarmSub"></p>
+    <button onclick="stopAlarm()">DISMISS</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="container">
+
+    <div class="header">
+        <svg class="alarm-icon" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="26" cy="28" r="17" fill="#1c1c1e" stroke="#0a84ff" stroke-width="2.2"/>
+            <circle cx="26" cy="28" r="13" fill="#2c2c2e"/>
+            <line x1="26" y1="28" x2="26" y2="19" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+            <line x1="26" y1="28" x2="32" y2="25" stroke="#0a84ff" stroke-width="2" stroke-linecap="round"/>
+            <circle cx="26" cy="28" r="1.8" fill="#fff"/>
+            <path d="M11 18 Q7 13 11 9" stroke="#0a84ff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+            <path d="M41 18 Q45 13 41 9" stroke="#0a84ff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+            <path d="M22 45 Q26 49 30 45" stroke="#0a84ff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        </svg>
+        <div class="header-text">
+            <h1>Reminder</h1>
+            <p>Voice reminders & alarms</p>
+        </div>
+    </div>
+
+    <!-- iOS install hint -->
+    <div id="installBanner">
+        <span>📲 Add to Home Screen for better background alerts</span>
+        <button onclick="document.getElementById('installBanner').style.display='none'">Got it</button>
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="taskInput" placeholder="Memo name...">
+
+        <div class="section-label">Repeat</div>
+        <div class="repeat-row">
+            <button class="repeat-btn active" data-repeat="once"    onclick="setRepeat('once')">Once</button>
+            <button class="repeat-btn"        data-repeat="daily"   onclick="setRepeat('daily')">Daily</button>
+            <button class="repeat-btn"        data-repeat="weekly"  onclick="setRepeat('weekly')">Weekly</button>
+            <button class="repeat-btn"        data-repeat="monthly" onclick="setRepeat('monthly')">Monthly</button>
+            <button class="repeat-btn"        data-repeat="yearly"  onclick="setRepeat('yearly')">Yearly</button>
+        </div>
+
+        <div class="date-wrap" id="dateWrap">
+            <input type="date" id="customDate">
+        </div>
+
+        <div class="time-wheel-wrap">
+            <div class="section-label" style="margin-bottom:10px;">Time</div>
+            <div class="time-wheels">
+                <div class="wheel-col"><span>Hour</span><div class="wheel" id="wheelHour"></div></div>
+                <div class="wheel-sep">:</div>
+                <div class="wheel-col"><span>Minute</span><div class="wheel" id="wheelMin"></div></div>
+            </div>
+        </div>
+
+        <div class="row">
+            <button class="primary record-btn" id="recBtn" onclick="toggleRecording()">🎤 Record</button>
+            <button class="primary" onclick="addReminder()">Save</button>
+        </div>
+    </div>
+
+    <div id="list" class="list"></div>
+</div>
+
+<script>
+// ── Service Worker ────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+
+// ── iOS install banner ────────────────────────────────────────────────
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone = window.navigator.standalone === true;
+if (isIOS && !isStandalone) {
+    document.getElementById('installBanner').style.display = 'flex';
+}
+
+// ── Notifications ─────────────────────────────────────────────────────
+(async function() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted' && Notification.permission !== 'denied')
+        await Notification.requestPermission();
+})();
+
+// ── Repeat ────────────────────────────────────────────────────────────
+let repeatMode = 'once';
+function setRepeat(mode) {
+    repeatMode = mode;
+    document.querySelectorAll('.repeat-btn').forEach(b => b.classList.toggle('active', b.dataset.repeat === mode));
+    document.getElementById('dateWrap').style.display = mode === 'once' ? 'block' : 'none';
+}
+
+(function() {
+    const today = new Date();
+    const local = new Date(today.getTime() - today.getTimezoneOffset()*60000).toISOString().slice(0,10);
+    document.getElementById('customDate').value = local;
+    document.getElementById('customDate').min = local;
+})();
+
+// ── Wheel ─────────────────────────────────────────────────────────────
+function buildWheel(id, count, pad, init) {
+    const el = document.getElementById(id);
+    const inner = document.createElement('div');
+    inner.className = 'wheel-inner';
+    for (let i = -1; i <= count; i++) {
+        const d = document.createElement('div');
+        d.className = 'wheel-item';
+        if (i >= 0 && i < count) { d.textContent = String(i).padStart(pad,'0'); d.dataset.val = i; }
+        inner.appendChild(d);
+    }
+    el.appendChild(inner);
+    let cur = init;
+    function setIdx(idx, anim) {
+        idx = Math.max(0, Math.min(count-1, idx)); cur = idx;
+        inner.style.transition = anim ? 'transform 0.18s cubic-bezier(.25,.8,.25,1)' : 'none';
+        inner.style.transform = `translateY(${-((idx+1)*40)+40}px)`;
+        inner.querySelectorAll('.wheel-item').forEach(d => d.classList.toggle('active', +d.dataset.val === idx));
+    }
+    setIdx(init, false);
+    let sy, si, drag = false;
+    el.addEventListener('touchstart', e => { drag=true; sy=e.touches[0].clientY; si=cur; inner.style.transition='none'; }, {passive:true});
+    el.addEventListener('touchmove',  e => { if(drag) setIdx(si+Math.round((sy-e.touches[0].clientY)/40),false); }, {passive:true});
+    el.addEventListener('touchend',   () => { drag=false; setIdx(cur,true); });
+    el.addEventListener('mousedown',  e => { drag=true; sy=e.clientY; si=cur; inner.style.transition='none'; e.preventDefault(); });
+    window.addEventListener('mousemove', e => { if(drag) setIdx(si+Math.round((sy-e.clientY)/40),false); });
+    window.addEventListener('mouseup',   () => { if(drag){ drag=false; setIdx(cur,true); } });
+    el.addEventListener('wheel', e => { e.preventDefault(); setIdx(cur+(e.deltaY>0?1:-1),true); }, {passive:false});
+    return { getVal: () => cur };
+}
+const now = new Date();
+const hourW = buildWheel('wheelHour', 24, 2, now.getHours());
+const minW  = buildWheel('wheelMin',  60, 2, now.getMinutes());
+
+// ── Recording ─────────────────────────────────────────────────────────
+let mediaRecorder, audioChunks = [], audioBlob = null;
+async function toggleRecording() {
+    const btn = document.getElementById('recBtn');
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const mime = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
+            mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+            audioChunks = [];
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+                btn.innerText = '🎤 Redo'; btn.classList.remove('recording');
+                showToast('Recording saved!');
+            };
+            mediaRecorder.start();
+            btn.innerText = '🛑 Stop'; btn.classList.add('recording');
+        } catch { showToast('Microphone access denied.'); }
+    } else {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    }
+}
+
+// ── Beep ──────────────────────────────────────────────────────────────
+let actx = null, beepInt = null;
+function startBeep() {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    beepInt = setInterval(() => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.connect(g); g.connect(actx.destination);
+        o.type='sine'; o.frequency.value=880;
+        g.gain.setValueAtTime(0.6, actx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+0.4);
+        o.start(actx.currentTime); o.stop(actx.currentTime+0.4);
+    }, 600);
+}
+function stopBeep() {
+    if (beepInt) { clearInterval(beepInt); beepInt=null; }
+    if (actx) { actx.close(); actx=null; }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Compute next repeat time ───────────────────────────────────────────
+function computeNextTime(r) {
+    const base = new Date(r.time);
+    if (r.repeat === 'once') return base;
+    const n = new Date();
+    let next = new Date(base);
+    while (next <= n) {
+        if      (r.repeat === 'daily')   next.setDate(next.getDate() + 1);
+        else if (r.repeat === 'weekly')  next.setDate(next.getDate() + 7);
+        else if (r.repeat === 'monthly') next.setMonth(next.getMonth() + 1);
+        else if (r.repeat === 'yearly')  next.setFullYear(next.getFullYear() + 1);
+        else break;
+    }
+    return next;
+}
+
+function repeatLabel(mode) {
+    return { once:'One-time', daily:'Every day', weekly:'Every week', monthly:'Every month', yearly:'Every year' }[mode] || mode;
+}
+
+// ── Add Reminder ──────────────────────────────────────────────────────
+function addReminder() {
+    const task = document.getElementById('taskInput').value.trim() || (audioBlob ? 'Voice Memo' : 'Reminder');
+    let alarmDate;
+    if (repeatMode === 'once') {
+        const dateVal = document.getElementById('customDate').value;
+        if (!dateVal) { showToast('Please pick a date!'); return; }
+        alarmDate = new Date(dateVal + 'T00:00:00');
+    } else {
+        alarmDate = new Date();
+    }
+    alarmDate.setHours(hourW.getVal(), minW.getVal(), 0, 0);
+
+    if (repeatMode !== 'once' && alarmDate.getTime() <= Date.now()) {
+        if      (repeatMode === 'daily')   alarmDate.setDate(alarmDate.getDate() + 1);
+        else if (repeatMode === 'weekly')  alarmDate.setDate(alarmDate.getDate() + 7);
+        else if (repeatMode === 'monthly') alarmDate.setMonth(alarmDate.getMonth() + 1);
+        else if (repeatMode === 'yearly')  alarmDate.setFullYear(alarmDate.getFullYear() + 1);
+    }
+    if (repeatMode === 'once' && alarmDate.getTime() <= Date.now()) { showToast('Pick a future time!'); return; }
+
+    function save(b64) {
+        const rems = JSON.parse(localStorage.getItem('rems_v3')||'[]');
+        rems.push({ task, time: alarmDate.toISOString(), audio: b64, id: Date.now(), triggered: false, repeat: repeatMode });
+        localStorage.setItem('rems_v3', JSON.stringify(rems));
+        audioBlob = null;
+        document.getElementById('taskInput').value = '';
+        document.getElementById('recBtn').innerText = '🎤 Record';
+        showToast('✅ Reminder saved!');
+        render();
+        scheduleNotif(task, alarmDate);
+    }
+
+    if (audioBlob) { const r = new FileReader(); r.onload = () => save(r.result); r.readAsDataURL(audioBlob); }
+    else save(null);
+}
+
+function scheduleNotif(task, alarmDate) {
+    if (Notification.permission !== 'granted') return;
+    const delay = alarmDate.getTime() - Date.now();
+    if (delay > 0) setTimeout(() => {
+        new Notification('⏰ ' + task, {
+            body: alarmDate.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),
+            requireInteraction: true
+        });
+    }, delay);
+}
+
+// ── Check Alarms ──────────────────────────────────────────────────────
+function checkAlarms() {
+    let rems = JSON.parse(localStorage.getItem('rems_v3')||'[]');
+    let changed = false;
+    rems.forEach(r => {
+        if (!r.triggered && new Date(r.time).getTime() <= Date.now()) {
+            triggerAlarm(r);
+            if (r.repeat && r.repeat !== 'once') {
+                const next = computeNextTime(r);
+                r.time = next.toISOString();
+                r.triggered = false;
+                scheduleNotif(r.task, next);
+            } else { r.triggered = true; }
+            changed = true;
+        }
+    });
+    if (changed) { localStorage.setItem('rems_v3', JSON.stringify(rems)); render(); }
+}
+
+function triggerAlarm(rem) {
+    document.getElementById('alarmTitle').innerText = rem.task;
+    document.getElementById('alarmSub').innerText = new Date(rem.time).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    document.getElementById('alarmOverlay').style.display = 'flex';
+    startBeep();
+}
+function stopAlarm() { stopBeep(); document.getElementById('alarmOverlay').style.display='none'; render(); }
+
+function deleteRem(id) {
+    localStorage.setItem('rems_v3', JSON.stringify(JSON.parse(localStorage.getItem('rems_v3')||'[]').filter(r=>r.id!==id)));
+    showToast('Reminder deleted.'); render();
+}
+
+function render() {
+    const list = document.getElementById('list');
+    const rems = JSON.parse(localStorage.getItem('rems_v3')||'[]');
+    if (!rems.length) { list.innerHTML='<p style="text-align:center;color:#8e8e93;margin-top:20px;">No reminders yet.</p>'; return; }
+    list.innerHTML = rems.sort((a,b)=>new Date(a.time)-new Date(b.time)).map(r => {
+        const next = computeNextTime(r);
+        const timeStr = (r.repeat && r.repeat !== 'once')
+            ? `Next: ${next.toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}`
+            : new Date(r.time).toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        return `
+        <div class="item" style="${r.triggered?'opacity:0.5;':''}">
+            <div class="item-header">
+                <div>
+                    <div class="item-title">${r.task}</div>
+                    <div class="item-meta">${timeStr}</div>
+                    ${r.repeat && r.repeat!=='once' ? `<span class="repeat-badge">↻ ${repeatLabel(r.repeat)}</span>` : ''}
+                </div>
+                <button class="del-btn" onclick="deleteRem(${r.id})">Delete</button>
+            </div>
+            ${r.audio ? `<audio controls src="${r.audio}"></audio>` : ''}
+        </div>`;
+    }).join('');
+}
+
+setInterval(checkAlarms, 1000);
+render();
+</script>
+</body>
+</html>
