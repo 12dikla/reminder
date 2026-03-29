@@ -209,8 +209,8 @@ function buildWheel(id, count, pad, init) {
     }
     setIdx(init, false);
     let sy, si, drag = false;
-    el.addEventListener('touchstart', e => { drag=true; sy=e.touches[0].clientY; si=cur; inner.style.transition='none'; }, {passive:true});
-    el.addEventListener('touchmove',  e => { if(drag) setIdx(si+Math.round((sy-e.touches[0].clientY)/40),false); }, {passive:true});
+    el.addEventListener('touchstart', e => { drag=true; sy=e.touches[0].clientY; si=cur; inner.style.transition='none'; e.preventDefault(); }, {passive:false});
+    el.addEventListener('touchmove',  e => { e.preventDefault(); if(drag) setIdx(si+Math.round((sy-e.touches[0].clientY)/40),false); }, {passive:false});
     el.addEventListener('touchend',   () => { drag=false; setIdx(cur,true); });
     el.addEventListener('mousedown',  e => { drag=true; sy=e.clientY; si=cur; inner.style.transition='none'; e.preventDefault(); });
     window.addEventListener('mousemove', e => { if(drag) setIdx(si+Math.round((sy-e.clientY)/40),false); });
